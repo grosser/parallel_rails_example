@@ -1,6 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require 'parallel_tests/test/runtime_logger' if ENV['RECORD_RUNTIME']
 
 module ActiveSupport
   class TestCase
