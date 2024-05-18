@@ -1,0 +1,43 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    os: [ubuntu-latest]
+    strategy:
+      matrix:
+        group: [1, 2]
+    steps:
+    - uses: actions/checkout@master
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: "Runtime cache: restore"
+      uses: actions/cache/restore@v4
+      id: cache-restore
+      with:
+        key: runtime-cache
+        path: tmp/parallel_runtime_test.log
+    - name: rake test # change to `--group-by filesize` when this runtime is missing or bad
+      run: bundle exec parallel_test -n 2 --group-by filesize --only-group ${{ matrix.group }} --verbose
+      env:
+        RECORD_RUNTIME: "true"
+    - name: "Runtime cache: clear" # prep for override in next step, see https://github.com/actions/cache/issues/342
+      if: ${{ steps.cache-restore.outputs.cache-hit }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        KEY: ${{ steps.cache-restore.outputs.cache-primary-key }}
+      run: |
+        gh extension install actions/gh-actions-cache
+        gh actions-cache delete $KEY --confirm
+      continue-on-error: true # do not fail in case the key was deleted by a parallel run
+    - name: "Runtime cache: store"
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+        path: tmp/parallel_runtime_test.log
