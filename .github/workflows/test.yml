@@ -6,13 +6,13 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         group: [1, 2]
+    name: parallel group ${{ matrix.group }}/2
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v4
     - uses: ruby/setup-ruby@v1
       with:
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
