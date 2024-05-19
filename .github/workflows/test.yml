@@ -1,11 +1,11 @@
 name: test
 
 on:
-  push:
   pull_request:
+  push:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,24 +20,61 @@ jobs:
       uses: actions/cache/restore@v4
       id: cache-restore
       with:
-        key: runtime-cache
+        key: runtime-cache-all
         path: tmp/parallel_runtime_test.log
     - name: rake test # change to `--group-by filesize` when this runtime is missing or bad
       run: bundle exec parallel_test -n 2 --group-by filesize --only-group ${{ matrix.group }} --verbose
       env:
         RECORD_RUNTIME: "true"
-    - name: "Runtime cache: clear" # prep for override in next step, see https://github.com/actions/cache/issues/342
-      if: ${{ steps.cache-restore.outputs.cache-hit }}
+    - name: "Runtime cache: clear chunk"
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        KEY: ${{ steps.cache-restore.outputs.cache-primary-key }}
       run: |
         gh extension install actions/gh-actions-cache
-        gh actions-cache delete $KEY --confirm
+        gh actions-cache delete runtime-cache-${{ matrix.group }} --confirm
+      continue-on-error: true # do not fail in case the key was deleted by a parallel run
+    - name: "Runtime cache: store chunk"
+      uses: actions/cache/save@v4
+      with:
+        key: runtime-cache-${{ matrix.group }}
+        path: tmp/parallel_runtime_test.log
+  store-runtime:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: "Runtime cache: load chunk"
+      uses: actions/cache/restore@v4
+      with:
+        key: runtime-cache-1
+        path: tmp/parallel_runtime_test.log
+    - name: "Runtime cache: move chunk"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.1
+    - name: "Runtime cache: load chunk"
+      uses: actions/cache/restore@v4
+      with:
+        key: runtime-cache-2 # TODO: automate
+        path: tmp/parallel_runtime_test.log
+    - name: "Runtime cache: combine chunks"
+      shell: bash
+      run: |
+        mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.2
+        cat tmp/parallel_runtime_test.log* > tmp/parallel_runtime_test.log
+        cat tmp/parallel_runtime_test.log
+    - name: "Runtime cache: clear"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        echo X${GH_TOKEN}X${{ github.token }}X
+        gh extension install actions/gh-actions-cache
+        gh actions-cache delete runtime-cache --confirm
       continue-on-error: true # do not fail in case the key was deleted by a parallel run
     - name: "Runtime cache: store"
       uses: actions/cache/save@v4
       with:
-        key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+        key: runtime-cache-all
         path: tmp/parallel_runtime_test.log
