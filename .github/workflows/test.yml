@@ -32,12 +32,14 @@ jobs:
       run: |
         gh extension install actions/gh-actions-cache
         gh actions-cache delete runtime-cache-${{ matrix.group }} --confirm
+        mkdir -p tmp/parallel_runtime_test
+        mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test/${{ matrix.group }}.log
       continue-on-error: true # do not fail in case the key was deleted by a parallel run
     - name: "Runtime cache: store chunk"
       uses: actions/cache/save@v4
       with:
         key: runtime-cache-${{ matrix.group }}
-        path: tmp/parallel_runtime_test.log
+        path: tmp/parallel_runtime_test
   store-runtime:
     runs-on: ubuntu-latest
     needs: test
@@ -46,19 +48,15 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         key: runtime-cache-1
-        path: tmp/parallel_runtime_test.log
-    - name: "Runtime cache: move chunk 1"
-      run: mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.1
+        path: tmp/parallel_runtime_test
     - name: "Runtime cache: load chunk 2"
       uses: actions/cache/restore@v4
       with:
         key: runtime-cache-2
-        path: tmp/parallel_runtime_test.log
-    - name: "Runtime cache: move chunk 2"
-      run: mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.2
+        path: tmp/parallel_runtime_test
     - name: "Runtime cache: combine chunks"
       run: |
-        cat tmp/parallel_runtime_test.log* > tmp/parallel_runtime_test.log
+        cat tmp/parallel_runtime_test/* > tmp/parallel_runtime_test.log
         cat tmp/parallel_runtime_test.log
     - name: "Runtime cache: clear"
       env:
