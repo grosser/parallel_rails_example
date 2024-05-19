@@ -1,7 +1,7 @@
-require "test_helper"
+require_relative "../test_helper"
 
 class User2Test < ActiveSupport::TestCase
-  100.times do |i|
+  20.times do |i|
     test "the truth #{i}" do
       assert true
       sleep 0.1
