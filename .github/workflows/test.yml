@@ -2,7 +2,6 @@ name: test
 
 on:
   pull_request:
-  push:
 
 jobs:
   test:
@@ -43,29 +42,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-    - name: "Runtime cache: load chunk"
+    - name: "Runtime cache: load chunk 1"
       uses: actions/cache/restore@v4
       with:
         key: runtime-cache-1
         path: tmp/parallel_runtime_test.log
-    - name: "Runtime cache: move chunk"
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: "Runtime cache: move chunk 1"
       run: mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.1
-    - name: "Runtime cache: load chunk"
+    - name: "Runtime cache: load chunk 2"
       uses: actions/cache/restore@v4
       with:
-        key: runtime-cache-2 # TODO: automate
+        key: runtime-cache-2
         path: tmp/parallel_runtime_test.log
+    - name: "Runtime cache: move chunk 2"
+      run: mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.2
     - name: "Runtime cache: combine chunks"
-      shell: bash
       run: |
-        mv tmp/parallel_runtime_test.log tmp/parallel_runtime_test.log.2
         cat tmp/parallel_runtime_test.log* > tmp/parallel_runtime_test.log
         cat tmp/parallel_runtime_test.log
     - name: "Runtime cache: clear"
-      shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
