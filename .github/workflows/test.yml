@@ -22,7 +22,7 @@ jobs:
         key: runtime-cache-all
         path: tmp/parallel_runtime_test.log
     - name: rake test # change to `--group-by filesize` when this runtime is missing or bad
-      run: bundle exec parallel_test -n 2 --group-by filesize --only-group ${{ matrix.group }} --verbose
+      run: bundle exec parallel_test -n 2 --group-by runtime --only-group ${{ matrix.group }} --verbose
       env:
         RECORD_RUNTIME: "true"
     - name: "Runtime cache: clear previous chunk cache"
